@@ -1,0 +1,5 @@
+cachetools>=4.2.2
+web3>=5.20.0
+aiohttp[speedups]
+simplejson
+aiologger
