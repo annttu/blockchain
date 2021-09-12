@@ -1,5 +1,8 @@
 from . import binance
 from . import kardiachain
+import os
+
+from .. import configuration
 
 
 class Network(object):
@@ -21,7 +24,7 @@ _NETWORKS = {
 
 NETWORKS = {
     key: Network(
-        provider=value.DEFAULT_PROVIDER,
+        provider=configuration.get_variable("{}_provider".format(key), value.DEFAULT_PROVIDER),
         chain_id=value.CHAIN_ID,
         tokens=value.TOKENS,
         routers=value.ROUTERS,

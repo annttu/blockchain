@@ -4,6 +4,8 @@ import web3
 import web3.eth
 import os
 
+from blockchain import configuration
+
 
 class InvalidPasswordException(Exception):
     pass
@@ -35,7 +37,7 @@ def create_account():
 def get_keyfile(keyfile):
     if not os.path.isfile(keyfile):
         raise RuntimeError("File {} does not exists".format(keyfile))
-    password = os.environ.get("password", None)
+    password = configuration.get_variable("password", None)
     if not password:
         password = getpass.getpass(prompt="Private key password: ")
     try:

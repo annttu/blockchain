@@ -63,8 +63,6 @@ def get_function_and_args(my_client, address, contract_json, selector, function_
         list_args.append(value)
         i += 1
 
-    print(mapped_args)
-
     return f, list_args
 
 
@@ -72,8 +70,6 @@ def call_function(args):
     public_key = networks.binance.BURN
     if args.public_key:
         public_key = args.public_key
-
-    print(public_key)
 
     my_client = client.Client(
         public_key=public_key,
@@ -92,7 +88,8 @@ def call_function(args):
 
     print(f"Calling function: {f} with args {list_args}")
     tx = f(*list_args)
-    print("Result: {}".format(tx.call({'from': my_client.w3.toChecksumAddress(public_key)})))
+    result = tx.call({'from': my_client.w3.toChecksumAddress(public_key)})
+    print(f"Result: {result}")
 
 
 def create_transaction(args):
@@ -177,8 +174,9 @@ def main():
     call_function_parser.add_argument("contract_json")
     call_function_parser.add_argument("address")
     call_function_parser.add_argument("selector")
-    call_function_parser.add_argument("--public-key", default=None, help="Public key to use with call")
-    call_function_parser.add_argument("--keyfile", default=None, help="Keyfile path")
+    group = call_function_parser.add_mutually_exclusive_group()
+    group.add_argument("--public-key", default=None, help="Public key to use with call")
+    group.add_argument("--keyfile", default=None, help="Keyfile path")
     call_function_parser.add_argument("args", nargs="*", type=str, help="Optional function arguments")
     call_function_parser.set_defaults(func=call_function)
 
@@ -186,8 +184,9 @@ def main():
     call_raw_parser.add_argument("network", choices=networks.NETWORKS.keys())
     call_raw_parser.add_argument("address")
     call_raw_parser.add_argument("data")
-    call_raw_parser.add_argument("--public-key", default=None, help="Public key to use with call")
-    call_raw_parser.add_argument("--keyfile", default=None, help="Keyfile path")
+    group = call_raw_parser.add_mutually_exclusive_group()
+    group.add_argument("--public-key", default=None, help="Public key to use with call")
+    group.add_argument("--keyfile", default=None, help="Keyfile path")
     call_raw_parser.add_argument("--gas", default=100000, type=int, help="Gas amount")
     call_raw_parser.add_argument("--value", type=int, default=0)
     call_raw_parser.set_defaults(func=call_raw)

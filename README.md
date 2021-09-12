@@ -97,6 +97,19 @@ optional arguments:
 ```
 
 
+Environment variables
+---
+
+#### Set endpoints
+
+* BLOCKCHAIN_BINANCE_PROVIDER
+* BLOCKCHAIN_KARDIACHAIN_PROVIDER
+
+#### Keyfile password
+
+* BLOCKCHAIN_PASSWORD
+
+
 License
 ---
 

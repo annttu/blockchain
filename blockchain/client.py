@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 from typing import Any, Dict
 
@@ -10,13 +11,15 @@ from web3 import Web3
 from web3.exceptions import TransactionNotFound
 from web3.middleware import geth_poa_middleware
 
-from . import contract
+from . import contract, configuration
 from .networks import get_network_by_name, Network, BINANCE
 from .contract import Token
 from .exceptions import BlockchainException, NoBalanceException
 
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_NETWORK = configuration.get_variable("default_network", BINANCE)
 
 
 def get_provider(address: str, query_limit: int = 50) -> Web3:
@@ -53,7 +56,7 @@ class Client(object):
             default_gas: int = 1
     ):
         if not network:
-            network = get_network_by_name(BINANCE)
+            network = get_network_by_name(DEFAULT_NETWORK)
         self.network = network
         self.chain_id = network.chain_id
         if not w3:
