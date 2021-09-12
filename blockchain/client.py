@@ -74,7 +74,7 @@ class Client(object):
             self._nonce = network_tx_count
         return self._nonce
 
-    def sign_transaction(self, tx, gas_estimate=None, gas_price=None):
+    def sign_transaction(self, tx, gas_estimate=None, gas_price=None, nonce=None):
         """
         Sign transaction
 
@@ -89,7 +89,8 @@ class Client(object):
                 raise BlockchainException("Failed to generate gas price")
         else:
             gas_price = self.w3.toWei(gas_price, 'gwei')
-        nonce = self.get_nonce()
+        if nonce is None:
+            nonce = self.get_nonce()
         tx_to_sign = tx.buildTransaction({
             'chainId': self.chain_id,
             'gas': gas_estimate,
@@ -152,7 +153,7 @@ class Client(object):
                 receipt = self.w3.eth.wait_for_transaction_receipt(tx_hash, timeout=timeout)
                 if receipt["status"] != 1:
                     raise Exception(f"Transaction {tx_hash} failed")
-                return
+                return receipt
             except TransactionNotFound:
                 logger.exception("Failed to fetch transaction %(hash)s", {"hash": tx_hash})
             except ValueError:
@@ -196,7 +197,7 @@ class Client(object):
 
     def send_native_token(self, amount: int, to_address: str, gas_price: int = None) -> SignedTransaction:
         tx = self.send_native_token_tx(amount=amount, to_address=to_address)
-        tx[gas_price] = gas_price or self.get_gas_price()
+        tx["gas_price"] = gas_price or self.get_gas_price()
         return self.sign_raw_transaction(**tx)
 
     def send_token_tx(self, token: Token, amount: int, to_address: str) -> Any:

@@ -15,8 +15,9 @@ class Sender(object):
 
         signed = self.client.send_native_token(amount=amount_raw, to_address=to_address, gas_price=gas_price)
         tx_hash = self.client.send_transaction(signed)
-        print("TX hash: {}".format(tx_hash.hex()))
-        self.client.wait_transaction_success(tx_hash=tx_hash.hex())
+        print("TX hash: {}".format(tx_hash))
+        self.client.wait_transaction_success(tx_hash=tx_hash)
+        print("Transaction successfully sent")
 
     def send_token(self, token_address, amount, to_address, gas_price: int = None):
         token = self.client.get_token(token_address)
@@ -52,7 +53,7 @@ def main():
         private_key=privkey,
         public_key=pubkey,
         test_mode=args.test_mode,
-        chain=networks.get_network_by_name(args.network)
+        network=networks.get_network_by_name(args.network)
     )
 
     if args.token:

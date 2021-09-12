@@ -9,6 +9,7 @@ from .exceptions import NotFoundException, BlockchainException, ContractLogicErr
 
 import web3.exceptions
 
+
 class FactoryContract(Contract):
     def __init__(self, client: Client, contract_address: str, abi: Dict):
         super().__init__(w3=client.w3, address=contract_address, abi=abi)

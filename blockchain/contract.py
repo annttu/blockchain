@@ -17,7 +17,7 @@ def read_abi_file(filename):
 
 @cachetools.cached(cache=cachetools.LRUCache(maxsize=512))
 def get_abi(name):
-    abi_file = os.path.join(package_path, f"../contracts/{name}.json")
+    abi_file = os.path.join(package_path, f"contracts/{name}.json")
     return read_abi_file(abi_file)
 
 
@@ -149,5 +149,6 @@ class Token(Contract):
 
     def __repr__(self):
         return self.__str__()
+
 
 ContractType = Union[Contract, LPContract, Token]

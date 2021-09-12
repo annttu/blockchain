@@ -276,8 +276,8 @@ def main():
     if token_to in swapper.client.network.tokens.values() and token_from not in swapper.client.network.tokens.values():
         sell = True
     elif token_to in swapper.client.network.tokens.values() and token_from in swapper.client.network.tokens.values():
-        token_to_index = swapper.client.network.tokens.values().index(token_to)
-        token_from_index = swapper.client.network.tokens.values().index(token_from)
+        token_to_index = list(swapper.client.network.tokens.values()).index(token_to)
+        token_from_index = list(swapper.client.network.tokens.values()).index(token_from)
         if token_to_index < token_from_index:
             sell = True
 
