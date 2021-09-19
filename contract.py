@@ -50,6 +50,10 @@ def get_function_and_args(my_client, address, contract_json, selector, function_
     i = 0
     for f_input in f.abi["inputs"]:
         name = f_input["name"]
+
+        if len(call_args) <= i:
+            print("ERROR: invalid amount of args")
+            break
         value = call_args[i]
         if f_input["type"] == "address":
             value = my_client.w3.toChecksumAddress(value)
@@ -129,12 +133,14 @@ def call_raw(args):
         test_mode=True
     )
 
-    result = my_client.w3.eth.call({
+    tx = {
         'value': int(args.value),
         'gas': args.gas,
         'to': my_client.w3.toChecksumAddress(args.address),
         'data': args.data
-    })
+    }
+
+    result = my_client.w3.eth.call(tx)
     print(f"Result raw: {result}")
     print(f"Result hex: {result.hex()}")
     if len(result.hex()) < 67:
@@ -187,7 +193,7 @@ def main():
     group = call_raw_parser.add_mutually_exclusive_group()
     group.add_argument("--public-key", default=None, help="Public key to use with call")
     group.add_argument("--keyfile", default=None, help="Keyfile path")
-    call_raw_parser.add_argument("--gas", default=100000, type=int, help="Gas amount")
+    call_raw_parser.add_argument("--gas", default=2500000, type=int, help="Gas amount")
     call_raw_parser.add_argument("--value", type=int, default=0)
     call_raw_parser.set_defaults(func=call_raw)
 

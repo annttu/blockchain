@@ -38,7 +38,7 @@ def show_info(args):
 
     print(f"Public key is: {public_key}")
     if args.private_key:
-        print(f"Private key is: {private_key}")
+        print(f"Private key is: {private_key.hex()}")
 
 
 def main():
