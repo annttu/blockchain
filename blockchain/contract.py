@@ -112,8 +112,8 @@ class Token(Contract):
             self._decimals = self.contract.functions.decimals().call()
         return self._decimals
 
-    def balanceOf(self, address):
-        return self.contract.functions.balanceOf(address).call()
+    def balanceOf(self, address, **kwargs):
+        return self.contract.functions.balanceOf(address).call(**kwargs)
 
     def balanceOfDecimal(self, address):
         raw_balance = self.balanceOf(address)

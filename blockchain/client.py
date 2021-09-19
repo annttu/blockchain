@@ -2,6 +2,9 @@ import logging
 import os
 import time
 from typing import Any, Dict
+from functools import lru_cache
+
+
 
 import requests
 import requests.adapters
@@ -66,6 +69,7 @@ class Client(object):
         self.private_key = private_key
         self.test_mode = test_mode
         self.default_gas = default_gas
+        self._token_factory = None
         self._nonce = None
 
     def get_nonce(self):
@@ -74,12 +78,16 @@ class Client(object):
             self._nonce = network_tx_count
         return self._nonce
 
-    def sign_transaction(self, tx, gas_estimate=None, gas_price=None, nonce=None):
+    def sign_transaction(self, tx, gas_estimate=None, gas_price=None, nonce=None, value=None):
         """
         Sign transaction
 
         gas_price in gwei
         """
+
+        if gas_price > 10000:
+            raise BlockchainException("Way too big gas_price")
+
         if not gas_estimate:
             gas_estimate = tx.estimateGas({"from": self.public_key})
         if not gas_price:
@@ -97,6 +105,8 @@ class Client(object):
             'gasPrice': gas_price,
             'nonce': nonce,
         })
+        if value is not None:
+            tx_to_sign["value"] = value
         if self.chain_id is None:
             del tx_to_sign["chainId"]
         logger.debug(f"Transaction to sign {tx_to_sign}")
@@ -223,9 +233,15 @@ class Client(object):
 
         return signed_tx
 
+    def _get_token_factory(self):
+        if not self._token_factory:
+            self._token_factory = self.w3.eth.contract(abi=contract.get_abi("token"))
+        return self._token_factory
+
+    @lru_cache(maxsize=512)
     def get_token(self, token_address: str) -> Token:
         # TODO: Check token exists?
-        return Token(self.w3, token_address)
+        return Token(self.w3, token_address, contract_factory=self._get_token_factory())
 
     def approve_tx(
             self,
