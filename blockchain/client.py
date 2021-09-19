@@ -85,11 +85,9 @@ class Client(object):
         gas_price in gwei
         """
 
-        if gas_price > 10000:
-            raise BlockchainException("Way too big gas_price")
-
-        if not gas_estimate:
+        if gas_estimate is None:
             gas_estimate = tx.estimateGas({"from": self.public_key})
+
         if not gas_price:
             gas_price = self.get_gas_price()
             print(gas_price)
@@ -97,6 +95,10 @@ class Client(object):
                 raise BlockchainException("Failed to generate gas price")
         else:
             gas_price = self.w3.toWei(gas_price, 'gwei')
+
+        if gas_price > self.w3.toWei("10000", 'gwei'):
+            raise BlockchainException("Way too big gas_price")
+
         if nonce is None:
             nonce = self.get_nonce()
         tx_to_sign = tx.buildTransaction({
@@ -105,6 +107,7 @@ class Client(object):
             'gasPrice': gas_price,
             'nonce': nonce,
         })
+        logger.debug(f"Signing transaction {tx_to_sign}")
         if value is not None:
             tx_to_sign["value"] = value
         if self.chain_id is None:
@@ -242,6 +245,10 @@ class Client(object):
     def get_token(self, token_address: str) -> Token:
         # TODO: Check token exists?
         return Token(self.w3, token_address, contract_factory=self._get_token_factory())
+
+    def get_wrapped_native_token(self):
+        contract_factory = self.w3.eth.contract(abi=contract.get_abi("wrapped_token"))
+        return Token(self.w3, self.network.wrapped_native_token, contract_factory=contract_factory)
 
     def approve_tx(
             self,

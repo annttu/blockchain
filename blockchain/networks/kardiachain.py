@@ -1,5 +1,5 @@
 
-CHAIN_ID = None  # Kardiachain don't use chain_id
+CHAIN_ID = None  # KardiaChain don't use chain_id
 
 DEFAULT_PROVIDER = "https://rpc.kardiachain.io/"
 
@@ -23,3 +23,9 @@ TOKENS = {
     "WKAI": WKAI,
     "KUSD": KUSD,
 }
+
+WRAPPED_NATIVE_TOKEN = WKAI
+
+EXPLORER_TX_URL = "https://explorer.kardiachain.io/tx/{}"
+
+NATIVE_TOKEN_DECIMALS = 18

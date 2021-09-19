@@ -15,6 +15,9 @@ import blockchain.exceptions
 
 
 class Swapper(object):
+    """
+    TODO: Support for swaps from native token
+    """
 
     def __init__(self, **kwargs):
         self.client = client.Client(**kwargs)
@@ -144,6 +147,48 @@ class Swapper(object):
             amount_out_min=amount_out_min_raw,
         )
 
+        url = self.client.network.explorer_tx_url.format(sent_tx)
+        print(f"Explorer URL for transaction: {url}")
+
+        self.client.wait_transaction_success(sent_tx)
+
+    def wrap(self, amount: Decimal, gas_price: int = None):
+        amount_raw = int(amount * 10 ** self.client.network.native_token_decimals)
+        wrapped_token = self.client.get_wrapped_native_token()
+
+        native_balance = self.client.w3.eth.get_balance(self.client.public_key)
+        if native_balance < amount_raw:
+            print(f"ERROR account balance {native_balance:.5f} less than {amount_raw:.5f} {wrapped_token.symbol}")
+            return
+
+        tx = wrapped_token.contract.functions.deposit()
+        self.client.test_transaction(tx)
+        signed_tx = self.client.sign_transaction(tx, value=amount_raw, gas_price=gas_price, gas_estimate=50000)
+        sent_tx = self.client.send_transaction(signed_tx)
+
+        url = self.client.network.explorer_tx_url.format(sent_tx)
+        print(f"Explorer URL for transaction: {url}")
+
+        self.client.wait_transaction_success(sent_tx)
+
+    def unwrap(self, amount: Decimal, gas_price: int = None):
+        amount_raw = int(amount * 10 ** self.client.network.native_token_decimals)
+        wrapped_token = self.client.get_wrapped_native_token()
+
+        token_balance = wrapped_token.balanceOf(self.client.public_key)
+
+        if token_balance < amount_raw:
+            print(f"ERROR account balance {token_balance:.5f} {wrapped_token.symbol} less than {amount_raw:.5f}")
+            return
+
+        tx = wrapped_token.contract.functions.withdraw(amount_raw)
+        self.client.test_transaction(tx)
+        # BSC gas estimation is broken, let's use static big enough gas estimate
+        signed_tx = self.client.sign_transaction(tx, gas_price=gas_price, gas_estimate=50000)
+        sent_tx = self.client.send_transaction(signed_tx)
+        url = self.client.network.explorer_tx_url.format(sent_tx)
+        print(f"Explorer URL for transaction: {url}")
+
         self.client.wait_transaction_success(sent_tx)
 
 
@@ -166,127 +211,36 @@ def get_router_price(router_name, router_address, swapper, token_from, token_to,
         print(f"No LP pair in {router_name}")
 
 
-def main():
-    parser = argparse.ArgumentParser("Swap tokens")
-    parser.add_argument(
-        '--keyfile',
-        required=True,
-        help="Keyfile path"
-    )
-    parser.add_argument(
-        "--network",
-        required=True,
-        choices=networks.NETWORKS.keys(),
-        help="Network to operate on"
-    )
-    parser.add_argument(
-        "--router",
-        required=False,
-        help="Router to use, either address or name of the known router, special value any will find lowest price",
-    )
-    parser.add_argument(
-        "--test-mode",
-        action="store_true",
-        default=False,
-        help="Run in test mode, don't send transactions"
-    )
-    parser.add_argument(
-        "--gas-price",
-        default=None,
-        type=int,
-        help="Gas price in gwei"
-    )
-    parser.add_argument(
-        "--slippage",
-        default=3,
-        type=int,
-        help="slippage percent"
-    )
-    parser.add_argument(
-        "token_from",
-        default=None,
-        help="ERC-20 token address, default is network native token"
-    )
-    parser.add_argument(
-        "token_to",
-        help="Target address"
-    )
-    parser.add_argument(
-        "amount",
-        type=str,
-        help="Amount token_from to swap, all means whole address balance, 10% is 10% of current balance"
-    )
-
-    args = parser.parse_args()
-
+def select_router(router_name, token_from, token_to, amount_in, swapper) -> RouterClient:
     router_address = None
     all_routers = False
-    if args.router.startswith("0x"):
-        router_address = Web3.toChecksumAddress(args.router)
-    elif args.router in ["all", "any"]:
+    selected_router = None
+    if router_name.startswith("0x"):
+        router_address = Web3.toChecksumAddress(router_name)
+    elif router_name in ["all", "any"]:
         all_routers = True
     else:
-        router_address = binance.ROUTERS.get(args.router, None)
+        router_address = binance.ROUTERS.get(router_name, None)
         if not router_address:
-            print(f"No such router {args.router}")
+            print(f"No such router {router_name}")
             sys.exit(1)
-
-    token_from = None
-    token_to = None
-    if args.token_from in binance.TOKENS.keys():
-        token_from = binance.TOKENS[args.token_from]
-    else:
-        token_from = Web3.toChecksumAddress(args.token_from)
-
-    if args.token_to in binance.TOKENS.keys():
-        token_to = binance.TOKENS[args.token_to]
-    else:
-        token_to = Web3.toChecksumAddress(args.token_to)
-
-    if token_to == token_from:
-        print("token_from must be different from token_to")
-        sys.exit(1)
-
-    privkey, pubkey = keyutils.get_keyfile(args.keyfile)
-
-    swapper = Swapper(
-        private_key=privkey,
-        public_key=pubkey,
-        test_mode=args.test_mode,
-        network=networks.get_network_by_name(args.network)
-    )
-
-    amount_in = None
-    if args.amount == "all":
-        amount_in = swapper.get_balance(token_address=token_from)
-        print(f"Calculated amount is {amount_in}")
-    elif args.amount.endswith("%"):
-        amount_percent = Decimal(args.amount[:-1])
-        banance = swapper.get_balance(token_address=token_from)
-        amount_in = banance * (amount_percent / Decimal("100"))
-        print(f"Calculated amount is {amount_in} of {banance}")
-    else:
-        try:
-            amount_in = Decimal(args.amount)
-        except ValueError:
-            print(f"Invalid amount value {args.amount}")
-            sys.exit(1)
-
-    sell = False
-    if token_to in swapper.client.network.tokens.values() and token_from not in swapper.client.network.tokens.values():
-        sell = True
-    elif token_to in swapper.client.network.tokens.values() and token_from in swapper.client.network.tokens.values():
-        token_to_index = list(swapper.client.network.tokens.values()).index(token_to)
-        token_from_index = list(swapper.client.network.tokens.values()).index(token_from)
-        if token_to_index < token_from_index:
-            sell = True
-
-    selected_router = None
 
     if all_routers:
         print("Checking prices from known routers")
         tasks = []
         values = []
+
+        sell = False
+        if token_to in swapper.client.network.tokens.values() and \
+                token_from not in swapper.client.network.tokens.values():
+            sell = True
+        elif token_to in swapper.client.network.tokens.values() and \
+                token_from in swapper.client.network.tokens.values():
+            print("WARNING: best and worst prices might be upside down, be extra careful...")
+            token_to_index = list(swapper.client.network.tokens.values()).index(token_to)
+            token_from_index = list(swapper.client.network.tokens.values()).index(token_from)
+            if token_to_index < token_from_index:
+                sell = True
 
         with ThreadPoolExecutor(max_workers=10) as executor:
             for router_name, router_address in swapper.client.network.routers.items():
@@ -339,6 +293,45 @@ def main():
             abi_file="PancakeRouterV2"
         )
 
+    return selected_router
+
+
+def swap(swapper, args):
+
+    token_from = None
+    token_to = None
+    if args.token_from in binance.TOKENS.keys():
+        token_from = binance.TOKENS[args.token_from]
+    else:
+        token_from = Web3.toChecksumAddress(args.token_from)
+
+    if args.token_to in binance.TOKENS.keys():
+        token_to = binance.TOKENS[args.token_to]
+    else:
+        token_to = Web3.toChecksumAddress(args.token_to)
+
+    if token_to == token_from:
+        print("token_from must be different from token_to")
+        sys.exit(1)
+
+    amount_in = None
+    if args.amount == "all":
+        amount_in = swapper.get_balance(token_address=token_from)
+        print(f"Calculated amount is {amount_in}")
+    elif args.amount.endswith("%"):
+        amount_percent = Decimal(args.amount[:-1])
+        banance = swapper.get_balance(token_address=token_from)
+        amount_in = banance * (amount_percent / Decimal("100"))
+        print(f"Calculated amount is {amount_in} of {banance}")
+    else:
+        try:
+            amount_in = Decimal(args.amount)
+        except ValueError:
+            print(f"Invalid amount value {args.amount}")
+            sys.exit(1)
+
+    selected_router = select_router(args.router, token_from, token_to, amount_in, swapper)
+
     swapper.swap_tokens(
         router=selected_router,
         token_from=token_from,
@@ -347,6 +340,110 @@ def main():
         gas_price=args.gas_price,
         slippage=args.slippage,
     )
+
+
+def unwrap(swapper: Swapper, args):
+    try:
+        amount = Decimal(args.amount)
+    except ValueError:
+        print(f"Invalid amount value {args.amount}")
+        sys.exit(1)
+    swapper.unwrap(amount, gas_price=args.gas_price)
+
+
+def wrap(swapper, args):
+    try:
+        amount = Decimal(args.amount)
+    except ValueError:
+        print(f"Invalid amount value {args.amount}")
+        sys.exit(1)
+    swapper.wrap(amount, gas_price=args.gas_price)
+
+
+def main():
+    parser = argparse.ArgumentParser("Swap tokens")
+    parser.add_argument(
+        '--keyfile',
+        required=True,
+        help="Keyfile path"
+    )
+    parser.add_argument(
+        "--network",
+        required=True,
+        choices=networks.NETWORKS.keys(),
+        help="Network to operate on"
+    )
+    parser.add_argument(
+        "--test-mode",
+        action="store_true",
+        default=False,
+        help="Run in test mode, don't send transactions"
+    )
+    parser.add_argument(
+        "--gas-price",
+        default=None,
+        type=int,
+        help="Gas price in gwei"
+    )
+
+    subparsers = parser.add_subparsers()
+    swap_parser = subparsers.add_parser("swap")
+
+    swap_parser.add_argument(
+        "--router",
+        required=False,
+        help="Router to use, either address or name of the known router, special value any will find lowest price",
+    )
+    swap_parser.add_argument(
+        "--slippage",
+        default=3,
+        type=int,
+        help="slippage percent"
+    )
+    swap_parser.add_argument(
+        "token_from",
+        help="ERC-20 token address"
+    )
+    swap_parser.add_argument(
+        "token_to",
+        help="Target address"
+    )
+    swap_parser.add_argument(
+        "amount",
+        type=str,
+        help="Amount token_from to swap, all means whole address balance, 10% is 10% of current balance"
+    )
+    swap_parser.set_defaults(func=swap)
+
+    wrap_parser = subparsers.add_parser("wrap")
+    wrap_parser.add_argument(
+        "amount",
+        type=str,
+        help="Amount to wrap"
+    )
+    wrap_parser.set_defaults(func=wrap)
+
+    unwrap_parser = subparsers.add_parser("unwrap")
+    unwrap_parser.add_argument(
+        "amount",
+        type=str,
+        help="Amount to unwrap"
+    )
+    unwrap_parser.set_defaults(func=unwrap)
+
+    args = parser.parse_args()
+
+    privkey, pubkey = keyutils.get_keyfile(args.keyfile)
+
+    swapper = Swapper(
+        private_key=privkey,
+        public_key=pubkey,
+        test_mode=args.test_mode,
+        network=networks.get_network_by_name(args.network),
+
+    )
+
+    args.func(swapper, args)
 
 
 if __name__ == '__main__':

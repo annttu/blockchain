@@ -41,3 +41,9 @@ TOKENS = {
     "BUSD": BUSD,
     "USDC": USDC,
 }
+
+WRAPPED_NATIVE_TOKEN = WBNB
+
+EXPLORER_TX_URL = "https://bscscan.com/tx/{}"
+
+NATIVE_TOKEN_DECIMALS = 18
