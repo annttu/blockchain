@@ -26,8 +26,8 @@ class Sender(object):
         signed_tx = self.client.send_token(token=token, amount=amount_raw, to_address=to_address, gas_price=gas_price)
 
         tx_hash = self.client.send_transaction(signed_tx)
-        print("TX hash: {}".format(tx_hash.hex()))
-        self.client.wait_transaction_success(tx_hash=tx_hash.hex())
+        print("TX hash: {}".format(tx_hash))
+        self.client.wait_transaction_success(tx_hash=tx_hash)
 
 
 def main():
