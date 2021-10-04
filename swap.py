@@ -134,7 +134,8 @@ class Swapper(object):
             token=token0,
             spender=router,
             amount=amount_in_raw,
-            approve_amount=amount_in_raw * 2
+            approve_amount=amount_in_raw * 2,
+            gas_price=gas_price
         )
         if tx_hash:
             self.client.wait_transaction_success(tx_hash)
@@ -145,6 +146,7 @@ class Swapper(object):
             path=[token0, token1],
             amount_in=amount_in_raw,
             amount_out_min=amount_out_min_raw,
+            gas_price=gas_price
         )
 
         url = self.client.network.explorer_tx_url.format(sent_tx)
