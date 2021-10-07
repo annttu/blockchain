@@ -146,7 +146,7 @@ class AsyncClient(object):
         :return:
         """
 
-        with self._nonce_lock:
+        async with self._nonce_lock:
             nonce = self.get_nonce()
             self._update_nonce()
         return nonce
