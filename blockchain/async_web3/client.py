@@ -145,9 +145,8 @@ class AsyncClient(object):
         Fetch and update nonce atomically
         :return:
         """
-
         async with self._nonce_lock:
-            nonce = self.get_nonce()
+            nonce = await self.get_nonce()
             self._update_nonce()
         return nonce
 
