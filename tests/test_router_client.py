@@ -22,6 +22,7 @@ LP_TOKENS = {
 
 }
 
+
 class FakeW3FunctionCallable(object):
     def __init__(self, value):
         self.value = value
@@ -47,7 +48,6 @@ TEST_TOKEN1 = "0x0000000000000000000000000000000000000001"
 TEST_TOKEN2 = "0x0000000000000000000000000000000000000002"
 TEST_FACTORY = "0x1000000000000000000000000000000000000001"
 TEST_LP = "0x2000000000000000000000000000000000000001"
-
 
 
 def test_get_amount_out(amount_in: int, reserve0: int, reserve1: int):
@@ -140,7 +140,10 @@ class FakeClient(Client):
             provider="/fake/socket",
             chain_id=123,
             routers=[],
-            tokens=[]
+            tokens=[],
+            wrapped_native_token=TEST_TOKEN1,
+            explorer_tx_url="https://exlorer.fake/tx",
+            native_token_decimals=18
         )
         super().__init__(
             public_key=public_key,

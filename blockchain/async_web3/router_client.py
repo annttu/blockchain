@@ -5,6 +5,7 @@ from typing import Dict, Optional, List
 
 from web3.contract import Contract
 
+from blockchain import utils
 from blockchain.async_web3.client import AsyncClient
 from blockchain.async_web3.contract import AsyncToken, async_get_abi, AsyncContract, AsyncLPContract
 from blockchain.exceptions import NotFoundException, ContractLogicError
@@ -41,11 +42,15 @@ class AsyncRouterClient(AsyncContract):
     Add Router Swap functions
     """
 
-    def __init__(self, client: AsyncClient, contract_address: str, abi: Dict):
+    def __init__(self, client: AsyncClient, contract_address: str, abi: Dict, max_cache_size: int = 100):
         super().__init__(w3=client.w3, address=contract_address, abi=abi)
         self.client = client
         self._factory: Optional[FactoryContract] = None
-        self._lp_cache = {}
+        if max_cache_size > 0:
+            self._lp_cache = utils.LRUDict(max_size=max_cache_size)
+        else:
+            self._lp_cache = None
+        self.max_cache_size = max_cache_size
 
     async def get_factory(self) -> FactoryContract:
         if not self._factory:
@@ -60,9 +65,12 @@ class AsyncRouterClient(AsyncContract):
     async def get_lp(self, token0: AsyncToken, token1: AsyncToken) -> AsyncLPContract:
         if (token0.address, token1.address) not in self._lp_cache:
             contract_factory = await self.get_factory()
-            self._lp_cache[(token0.address, token1.address)] = await contract_factory.get_lp(
+            lp = await contract_factory.get_lp(
                 token0=token0, token1=token1
             )
+            if self.max_cache_size == 0:
+                return lp
+            self._lp_cache[(token0.address, token1.address)] = lp
         return self._lp_cache[(token0.address, token1.address)]
 
     async def get_amount_out(self, token0: AsyncToken, token1: AsyncToken, amount_in: int) -> int:
