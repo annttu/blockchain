@@ -63,7 +63,7 @@ class AsyncRouterClient(AsyncContract):
         return self._factory
 
     async def get_lp(self, token0: AsyncToken, token1: AsyncToken) -> AsyncLPContract:
-        if (token0.address, token1.address) not in self._lp_cache:
+        if self.max_cache_size == 0 or (token0.address, token1.address) not in self._lp_cache:
             contract_factory = await self.get_factory()
             lp = await contract_factory.get_lp(
                 token0=token0, token1=token1
