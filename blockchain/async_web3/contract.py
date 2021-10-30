@@ -112,10 +112,10 @@ class AsyncContract(object):
         self._name = name
 
         if not contract_factory:
-            self.factory = Contract.factory(web3=self.w3, abi=abi)
+            self._contract_factory = Contract.factory(web3=self.w3, abi=abi)
         else:
-            self.factory = contract_factory
-        self.contract = self.factory(address=self.address)
+            self._contract_factory = contract_factory
+        self.contract = self._contract_factory(address=self.address)
 
     async def call_function(self, function: ContractFunction, tx_kwargs=None, block_id=None):
         tx: TxParams = {}
@@ -154,29 +154,35 @@ class AsyncLPContract(AsyncContract):
         self._name = None
         self._token0 = None
         self._token1 = None
+        self._factory = None
 
     @classmethod
     async def create(cls, w3, address, contract_factory=None):
         abi = await async_get_abi("PancakeLP")
         return cls(w3, address, abi=abi, contract_factory=contract_factory)
 
-    async def name(self):
+    async def name(self, block_id=None):
         if not self._name:
-            self._name = await self.call_function(self.contract.functions.name())
+            self._name = await self.call_function(self.contract.functions.name(), block_id=block_id)
         return self._name
 
-    async def token0(self):
+    async def token0(self, block_id=None):
         if not self._token0:
-            self._token0 = await self.call_function(self.contract.functions.token0())
+            self._token0 = await self.call_function(self.contract.functions.token0(), block_id=block_id)
         return self._token0
 
-    async def token1(self):
+    async def token1(self, block_id=None):
         if not self._token1:
-            self._token1 = await self.call_function(self.contract.functions.token1())
+            self._token1 = await self.call_function(self.contract.functions.token1(), block_id=block_id)
         return self._token1
 
-    async def get_reserves(self):
-        return await self.call_function(self.contract.functions.getReserves())
+    async def get_reserves(self, block_id=None):
+        return await self.call_function(self.contract.functions.getReserves(), block_id=block_id)
+
+    async def factory(self, block_id=None):
+        if not self._factory:
+            self._factory = self.call_function(self.contract.functions.factory(), block_id=block_id)
+        return self._factory
 
     def __str__(self):
         return f"<LPContract {self._name}>"
