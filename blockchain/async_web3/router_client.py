@@ -20,14 +20,22 @@ class FactoryContract(AsyncContract):
         self.lp_abi = None
         self.lp_factory = None
 
-    async def get_lp(self, token0: AsyncToken, token1: AsyncToken) -> AsyncLPContract:
+    async def get_lp_factory(self):
         if not self.lp_abi:
             self.lp_abi = await async_get_abi("PancakeLP")
         if not self.lp_factory:
             self.lp_factory = Contract.factory(web3=self.w3, abi=self.lp_abi)
+        return self.lp_factory
+
+    async def get_lp(self, token0: AsyncToken, token1: AsyncToken) -> AsyncLPContract:
+        await self.get_lp_factory()
         address = await self.call_function(self.contract.functions.getPair(token0.address, token1.address))
         if not address or address == '0x0000000000000000000000000000000000000000':
             raise NotFoundException(f"Pair not found for tokens {token0} {token1}")
+        return await AsyncLPContract.create(w3=self.w3, address=address, contract_factory=self.lp_factory)
+
+    async def get_lp_by_address(self, address: str):
+        await self.get_lp_factory()
         return await AsyncLPContract.create(w3=self.w3, address=address, contract_factory=self.lp_factory)
 
     def __str__(self):

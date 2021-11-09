@@ -72,8 +72,11 @@ class Client(object):
         self._token_factory = None
         self._nonce = None
 
-    def get_nonce(self):
-        network_tx_count = self.w3.eth.get_transaction_count(self.public_key)
+    def get_nonce(self, tag=None):
+        args = []
+        if tag:
+            args.append(tag)
+        network_tx_count = self.w3.eth.get_transaction_count(self.public_key, *args)
         if not self._nonce or network_tx_count > self._nonce:
             self._nonce = network_tx_count
         return self._nonce

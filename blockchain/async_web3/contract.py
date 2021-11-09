@@ -181,7 +181,7 @@ class AsyncLPContract(AsyncContract):
 
     async def factory(self, block_id=None):
         if not self._factory:
-            self._factory = self.call_function(self.contract.functions.factory(), block_id=block_id)
+            self._factory = await self.call_function(self.contract.functions.factory(), block_id=block_id)
         return self._factory
 
     def __str__(self):
